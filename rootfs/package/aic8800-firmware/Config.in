@@ -1,0 +1,6 @@
+config BR2_PACKAGE_AIC8800_FIRMWARE
+	bool "aic8800-firmware (AIC8800 WiFi+BT firmware blobs)"
+	help
+	  Firmware blobs for AIC8800D80 and AIC8800DC variants.
+	  Installs to /lib/firmware/aic8800{D80,dc}/. Required at runtime
+	  by the aic8800-driver kernel modules.

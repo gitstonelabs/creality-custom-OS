@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: gitStoneLabs <roger@stonelabs.dev>
+Date: Sun, 24 May 2026 15:50:00 -0700
+Subject: [PATCH] dbus_exporter: skip executables that fail to introspect
+
+Buildroot 2022.02 pins host-systemd to 250.4 which has a buffer-overflow
+bug in its --bus-introspect argument parsing. Older glibc was permissive;
+newer glibc (2.39+) catches it via fortify-source and aborts the binary
+with SIGABRT before any output is produced.
+
+Since the interfaces XML files this script generates are pure metadata
+(D-Bus introspection data, only consumed by introspection tools at runtime),
+losing them does not affect the target rootfs at all. Patch the script to
+log the failure and continue rather than aborting the entire host-systemd
+build.
+
+Signed-off-by: gitStoneLabs <roger@stonelabs.dev>
+---
+ tools/dbus_exporter.py | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/tools/dbus_exporter.py b/tools/dbus_exporter.py
+index 0000001..0000002 100755
+--- a/tools/dbus_exporter.py
++++ b/tools/dbus_exporter.py
+@@ -36,7 +36,10 @@ def iterate_executables(output_dir, executables):
+     output_dir.mkdir(mode=0o755, exist_ok=True)
+
+     for exe in executables:
+-        extract_interfaces_xml(output_dir, exe)
++        try:
++            extract_interfaces_xml(output_dir, exe)
++        except Exception as e:
++            print(f"WARNING: skipping {exe} interfaces export ({type(e).__name__}: {e}). Buildroot 2022.02 systemd 250.4 has a buffer-overflow bug in --bus-introspect that newer glibc fortify-source catches. The interfaces XML is metadata only — target rootfs is unaffected.", flush=True)
+
+
+ def main():
+--
+2.39.2

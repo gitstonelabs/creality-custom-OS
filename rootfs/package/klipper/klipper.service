@@ -1,0 +1,27 @@
+[Unit]
+Description=Klipper 3D Printer Firmware Host
+Documentation=https://www.klipper3d.org/
+After=network-online.target
+Wants=udev.target
+
+[Service]
+Type=simple
+User=klipper
+RemainAfterExit=yes
+WorkingDirectory=/opt/klipper
+EnvironmentFile=-/etc/default/klipper
+ExecStart=/usr/bin/python3 /opt/klipper/klippy/klippy.py /etc/klipper/printer.cfg -l /var/log/klipper/klippy.log
+Restart=always
+RestartSec=10
+
+# Hardening
+NoNewPrivileges=yes
+ProtectSystem=full
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+ReadWritePaths=/etc/klipper /var/log/klipper /tmp /run
+
+[Install]
+WantedBy=multi-user.target

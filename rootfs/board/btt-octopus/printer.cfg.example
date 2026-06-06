@@ -1,0 +1,268 @@
+# =============================================================================
+# gitStoneLabs printer.cfg — Creality Hi-like printer on BTT Octopus V1.1
+# Version: 1.0 — 2026-05-28
+# =============================================================================
+#
+# Hardware assumed:
+#   * Mainboard:  BTT Octopus V1.1 (STM32F446ZE), TMC2209 drivers
+#   * Host:       Jetson Orin Nano (Klipper, Moonraker, Fluidd)
+#   * Toolhead:   BTT EBB42 G2 over CAN
+#   * Y axis:     S42C V1.1 closed-loop stepper (Creality smart-stepper RS485)
+#   * Multi-mat:  Creality CFS-C box over USB-RS485 dongle
+#
+# Adjust pin assignments to match your actual wiring. The values below are
+# the BTT Octopus V1.1 stock defaults from the BTT documentation.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Klipper system + MCU
+# -----------------------------------------------------------------------------
+
+[mcu]
+# Find the serial path with: ls /dev/serial/by-id/
+serial: /dev/serial/by-id/usb-Klipper_stm32f446xx_REPLACE_WITH_YOUR_SERIAL-if00
+restart_method: command
+
+[mcu ebb42]
+# EBB42 G2 toolhead board, attached over CAN bus
+# Find canbus_uuid with: ~/klippy-env/bin/python ~/klipper/scripts/canbus_query.py can0
+canbus_uuid: REPLACE_WITH_EBB42_UUID
+
+[printer]
+kinematics: cartesian
+max_velocity: 300
+max_accel: 5000
+max_z_velocity: 10
+max_z_accel: 100
+square_corner_velocity: 5.0
+
+# -----------------------------------------------------------------------------
+# CAN bus (for EBB42 toolhead)
+# -----------------------------------------------------------------------------
+
+[canbus_bridge can0]
+# If your Octopus firmware was built as a CAN-bridge (MCU=USB on Octopus,
+# CAN0 bus exposes can0 to Linux), this block is needed.
+# Skip if using a separate USB-CAN like BTT U2C v2.1.
+
+# -----------------------------------------------------------------------------
+# Stepper X — TMC2209 on Octopus motor slot 0
+# -----------------------------------------------------------------------------
+
+[stepper_x]
+step_pin:  PF13
+dir_pin:   !PF12   # invert with ! prefix if motor runs backwards
+enable_pin: !PF14
+microsteps: 16
+rotation_distance: 40
+endstop_pin: ebb42:gpio6   # X endstop on EBB42 (or PG6 if on mainboard)
+position_endstop: 0
+position_max: 235
+homing_speed: 50
+
+[tmc2209 stepper_x]
+uart_pin: PC4
+run_current: 0.700
+hold_current: 0.350
+stealthchop_threshold: 999999
+
+# -----------------------------------------------------------------------------
+# Stepper Y — S42C V1.1 closed-loop via Creality smart-stepper RS485
+# (configured by our motor_control.py module — when ready)
+# -----------------------------------------------------------------------------
+
+# Placeholder Y: uses Octopus motor slot 1 with TMC2209 as a TEMPORARY fallback
+# until our S42C smart-stepper module is finalized. Comment out when ready.
+[stepper_y]
+step_pin:  PG0
+dir_pin:   !PG1
+enable_pin: !PF15
+microsteps: 16
+rotation_distance: 40
+endstop_pin: PG9    # mainboard endstop
+position_endstop: 0
+position_max: 235
+homing_speed: 50
+
+[tmc2209 stepper_y]
+uart_pin: PD11
+run_current: 0.700
+hold_current: 0.350
+stealthchop_threshold: 999999
+
+# Future: replace the above two blocks with the smart-stepper S42C config
+# once motor_control.py is finished. Likely shape:
+#
+# [s42c_smart_stepper y]
+# serial: /dev/ttyS42C       # the second USB-RS485 dongle
+# baud: 230400
+# axis_address: 1            # CFS-style auto-addressed
+# rotation_distance: 40
+# endstop_pin: PG9
+
+# -----------------------------------------------------------------------------
+# Stepper Z (front) and Z1 (rear) — dual-Z lift
+# -----------------------------------------------------------------------------
+
+[stepper_z]
+step_pin:  PF11
+dir_pin:   PG3
+enable_pin: !PG5
+microsteps: 16
+rotation_distance: 4   # for typical T8 leadscrew; verify on actual machine
+endstop_pin: probe:z_virtual_endstop
+position_max: 250
+
+[tmc2209 stepper_z]
+uart_pin: PC6
+run_current: 0.700
+hold_current: 0.350
+stealthchop_threshold: 999999
+
+[stepper_z1]
+step_pin:  PG4
+dir_pin:   PC1
+enable_pin: !PA0
+microsteps: 16
+rotation_distance: 4
+
+[tmc2209 stepper_z1]
+uart_pin: PC7
+run_current: 0.700
+hold_current: 0.350
+stealthchop_threshold: 999999
+
+# -----------------------------------------------------------------------------
+# Extruder — on the EBB42 toolhead
+# -----------------------------------------------------------------------------
+
+[extruder]
+step_pin:  ebb42:gpio18
+dir_pin:   ebb42:gpio19
+enable_pin: !ebb42:gpio17
+microsteps: 16
+rotation_distance: 22.6789511  # for stock BMG/Sherpa Mini; calibrate later
+nozzle_diameter: 0.4
+filament_diameter: 1.75
+heater_pin: ebb42:gpio7
+sensor_type: Generic 3950
+sensor_pin: ebb42:gpio27
+control: pid
+pid_Kp: 25
+pid_Ki: 1.2
+pid_Kd: 110
+min_temp: 0
+max_temp: 300
+
+[tmc2209 extruder]
+uart_pin: ebb42:gpio20
+run_current: 0.500
+hold_current: 0.300
+
+# -----------------------------------------------------------------------------
+# Heated bed (on Octopus mainboard)
+# -----------------------------------------------------------------------------
+
+[heater_bed]
+heater_pin: PA1
+sensor_type: ATC Semitec 104GT-2  # adjust to match your bed thermistor
+sensor_pin: PF3
+control: pid
+pid_Kp: 70
+pid_Ki: 1.5
+pid_Kd: 850
+min_temp: 0
+max_temp: 110
+
+# -----------------------------------------------------------------------------
+# Fans
+# -----------------------------------------------------------------------------
+
+[heater_fan hotend_fan]
+pin: ebb42:gpio0
+heater: extruder
+heater_temp: 50
+fan_speed: 1.0
+
+[fan]
+# Part cooling fan
+pin: ebb42:gpio13
+max_power: 1.0
+shutdown_speed: 0
+cycle_time: 0.010
+
+[controller_fan controller_fan]
+# Octopus board cooling fan
+pin: PA8
+heater: heater_bed extruder
+
+# -----------------------------------------------------------------------------
+# Probe — ProTouch v3 emulation on the EBB42, or BLTouch if installed
+# -----------------------------------------------------------------------------
+
+# Until prtouch_v3.py is ported and integrated cleanly, use a BLTouch placeholder:
+[bltouch]
+sensor_pin: ^ebb42:gpio22
+control_pin: ebb42:gpio26
+x_offset: 0
+y_offset: 25
+z_offset: 2.5
+speed: 5
+samples: 2
+
+[safe_z_home]
+home_xy_position: 117.5, 117.5
+speed: 50
+z_hop: 10
+z_hop_speed: 5
+
+[bed_mesh]
+speed: 120
+horizontal_move_z: 5
+mesh_min: 20, 20
+mesh_max: 215, 215
+probe_count: 5, 5
+algorithm: bicubic
+
+# -----------------------------------------------------------------------------
+# CFS — multi-material filament system
+# -----------------------------------------------------------------------------
+
+[creality_cfs]
+serial_port: /dev/ttyCFS    # the USB-RS485 dongle dedicated to CFS
+baud: 230400
+box_count: 1                # 1 box for now; daisy-chain up to 4
+
+# Macros that map T0..T3 to CFS box slots
+[include cfs_macros.cfg]
+
+# -----------------------------------------------------------------------------
+# Misc
+# -----------------------------------------------------------------------------
+
+[idle_timeout]
+timeout: 1800
+
+[respond]
+
+[gcode_macro START_PRINT]
+description: Start of print — heats bed, runs CFS_INIT if needed, homes
+gcode:
+    M140 S{params.BED_TEMP|default(60)|float}
+    M104 S{params.HOTEND_TEMP|default(210)|float}
+    G28
+    M190 S{params.BED_TEMP|default(60)|float}
+    M109 S{params.HOTEND_TEMP|default(210)|float}
+    # Optional: bed mesh + purge line
+
+[gcode_macro END_PRINT]
+description: End of print — park, cool, CFS_PRINT_END (retract back to boxes)
+gcode:
+    M104 S0
+    M140 S0
+    G91
+    G1 Z10 F600
+    G90
+    G1 X0 Y200 F3000
+    M84
+    CFS_PRINT_END

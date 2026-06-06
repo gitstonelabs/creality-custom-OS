@@ -1,0 +1,15 @@
+[Unit]
+Description=USB Ethernet Gadget (RNDIS + ECM)
+Documentation=https://www.kernel.org/doc/Documentation/usb/gadget_configfs.txt
+After=local-fs.target
+Before=network-pre.target dhcpcd.service
+Wants=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/usb-gadget-up.sh
+ExecStop=/usr/sbin/usb-gadget-down.sh
+
+[Install]
+WantedBy=multi-user.target

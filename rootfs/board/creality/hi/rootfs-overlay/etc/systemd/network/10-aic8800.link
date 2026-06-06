@@ -1,0 +1,16 @@
+# Optional: pin the AIC8800 wlan0 MAC address.
+#
+# Some routers enforce a MAC allowlist. If yours does, uncomment MACAddress
+# below and set it to your board's own WiFi MAC, which you can read on the
+# printer with:  cat /sys/class/net/wlan0/address
+# That keeps the address stable across out-of-tree driver reloads.
+#
+# Left commented by default so the driver picks the MAC. No real per-unit
+# MAC ships in this file.
+
+[Match]
+OriginalName=wlan0
+
+[Link]
+# MACAddress=AA:BB:CC:DD:EE:FF
+NamePolicy=keep

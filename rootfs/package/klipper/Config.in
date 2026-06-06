@@ -1,0 +1,18 @@
+config BR2_PACKAGE_KLIPPER
+	bool "klipper (3D printer firmware host)"
+	depends on BR2_PACKAGE_PYTHON3
+	select BR2_PACKAGE_PYTHON_PYSERIAL
+	select BR2_PACKAGE_PYTHON_GREENLET
+	help
+	  Klipper is a host-side 3D printer firmware that runs on the SBC
+	  and offloads timing-critical work to one or more MCU companions
+	  over UART / USB / CAN.
+
+	  This package installs the Klipper Python sources into
+	  /opt/klipper and a systemd unit (klipper.service) that runs
+	  klippy.py against /etc/klipper/printer.cfg.
+
+	  See: https://www.klipper3d.org/
+
+comment "klipper requires Python 3"
+	depends on !BR2_PACKAGE_PYTHON3

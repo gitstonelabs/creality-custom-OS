@@ -1,0 +1,17 @@
+config BR2_PACKAGE_AIC8800_DRIVER
+	bool "aic8800-driver (AIC8800 WiFi+BT kernel modules)"
+	depends on BR2_LINUX_KERNEL
+	help
+	  Out-of-tree kernel driver for AIC8800 series WiFi+BT chipsets,
+	  used by the Creality Hi mainboard. Source pulled from vendor BSP.
+
+	  Builds four kernel modules:
+	    - aic_bsp     (board support / power sequencing)
+	    - aic8800_fdrv (WiFi function driver — cfg80211-based)
+	    - aic8800_btlpm (Bluetooth low-power management)
+	    - aic8800_btusb (Bluetooth USB transport)
+
+	  Pairs with BR2_PACKAGE_AIC8800_FIRMWARE for the firmware blobs.
+
+comment "aic8800-driver requires a Linux kernel to be built"
+	depends on !BR2_LINUX_KERNEL

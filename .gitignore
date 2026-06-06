@@ -1,0 +1,18 @@
+# Built kernel artifacts
+zImage
+*.dtb
+
+# Android bootimg + raw kernel images
+boot.img
+*.img
+kernel_stock*.img
+
+# swupdate packages
+*.swu
+
+# Built rootfs images
+rootfs.squashfs
+rootfs.tar
+
+# Buildroot output tree
+build-output/

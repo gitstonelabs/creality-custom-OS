@@ -1,0 +1,12 @@
+# gitStoneLabs external tree — package menu
+
+menu "gitStoneLabs custom packages"
+
+source "$BR2_EXTERNAL_GITSTONELABS_PATH/package/aic8800-driver/Config.in"
+source "$BR2_EXTERNAL_GITSTONELABS_PATH/package/aic8800-firmware/Config.in"
+source "$BR2_EXTERNAL_GITSTONELABS_PATH/package/klipper/Config.in"
+source "$BR2_EXTERNAL_GITSTONELABS_PATH/package/moonraker/Config.in"
+source "$BR2_EXTERNAL_GITSTONELABS_PATH/package/creality-cfs-klipper/Config.in"
+source "$BR2_EXTERNAL_GITSTONELABS_PATH/package/fluidd/Config.in"
+
+endmenu

@@ -1,0 +1,16 @@
+[Unit]
+Description=Reset U-Boot bootcount on healthy boot
+Documentation=https://github.com/gitstonelabs/
+# Run AFTER everything else is up. The fact that we reach this stage
+# means the boot was healthy. The reset clears the failure counter so
+# the next boot starts fresh.
+After=multi-user.target
+Wants=multi-user.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/gitstonelabs-bootcount-reset.sh
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,18 @@
+[Unit]
+Description=gitStoneLabs side-channel heartbeat on ttyS3 (bed-MCU)
+Documentation=https://github.com/gitstonelabs/
+# Start AFTER serial devices are populated but BEFORE Klipper.
+# Klipper will take over ttyS3 once it's up and we'll yield.
+After=systemd-udev-settle.service local-fs.target
+Before=klipper.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/gitstonelabs-heartbeat.sh
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

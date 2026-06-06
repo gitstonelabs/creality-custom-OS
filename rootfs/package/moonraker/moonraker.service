@@ -1,0 +1,23 @@
+[Unit]
+Description=Moonraker — Klipper API server
+Documentation=https://moonraker.readthedocs.io/
+After=network-online.target klipper.service
+Requires=klipper.service
+
+[Service]
+Type=simple
+User=moonraker
+WorkingDirectory=/opt/moonraker
+EnvironmentFile=-/etc/default/moonraker
+ExecStart=/usr/bin/python3 /opt/moonraker/moonraker/moonraker.py -d /etc/moonraker -l /var/log/moonraker/moonraker.log
+Restart=always
+RestartSec=10
+
+# Hardening
+NoNewPrivileges=yes
+ProtectSystem=full
+PrivateTmp=yes
+ReadWritePaths=/etc/moonraker /var/log/moonraker /tmp /run /etc/klipper
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,13 @@
+config BR2_PACKAGE_CREALITY_CFS_KLIPPER
+	bool "creality-cfs-klipper (CFS RS485 module for Klipper)"
+	depends on BR2_PACKAGE_KLIPPER
+	help
+	  gitStoneLabs' GPL-3.0 reverse-engineered replacement for
+	  Creality's serial_485_wrapper.cpython-39.so blob — full Python
+	  implementation of the CFS RS485 protocol (230400 8N1, 0xF7
+	  header, CRC-8/SMBUS).
+
+	  Installs creality_cfs.py and cfs_macros.cfg into Klipper's
+	  extras directory plus /etc/klipper/macros/.
+
+	  See: https://github.com/gitstonelabs/creality-cfs-klipper

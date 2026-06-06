@@ -1,0 +1,12 @@
+config BR2_PACKAGE_MOONRAKER
+	bool "moonraker (Klipper HTTP/WebSocket API server)"
+	depends on BR2_PACKAGE_PYTHON3
+	depends on BR2_PACKAGE_KLIPPER
+	help
+	  Moonraker is the HTTP/WebSocket API in front of Klipper. Required
+	  by Fluidd / Mainsail / KlipperScreen web UIs.
+
+	  See: https://github.com/Arksine/moonraker
+
+comment "moonraker requires klipper + Python 3"
+	depends on !BR2_PACKAGE_KLIPPER || !BR2_PACKAGE_PYTHON3

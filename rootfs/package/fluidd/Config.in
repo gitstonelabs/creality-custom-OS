@@ -1,0 +1,13 @@
+config BR2_PACKAGE_FLUIDD
+	bool "fluidd (Klipper web UI)"
+	depends on BR2_PACKAGE_MOONRAKER
+	help
+	  Fluidd is a single-page-app web frontend for Klipper/Moonraker.
+	  Installs the static files (HTML/JS/CSS) to /var/www/fluidd.
+	  Needs an HTTP server (e.g. nginx or lighttpd) to actually serve
+	  the files — the nginx config in our rootfs overlay does this.
+
+	  See: https://docs.fluidd.xyz/
+
+comment "fluidd requires moonraker"
+	depends on !BR2_PACKAGE_MOONRAKER

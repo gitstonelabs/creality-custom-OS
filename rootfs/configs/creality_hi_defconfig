@@ -1,0 +1,182 @@
+# =============================================================================
+# Buildroot defconfig for Creality Hi (3D printer, Allwinner T113-S3)
+# =============================================================================
+#
+# Derived from upstream mangopi_mq_dual_mainline_defconfig (Yuzuki Buildroot)
+# which targets the same SoC (T113-S3, dual Cortex-A7).
+#
+# Hi-specific differences from upstream:
+#   - Board DTS = sun8i-t113s-creality-hi.dts (our 445-line port)
+#   - Hostname / issue strings = Creality Hi
+#   - Adds Klipper / Moonraker / Fluidd packages
+#   - Adds Python 3.9 + pyserial (for prtouch_v3.py + creality_cfs.py)
+#   - Adds gs_usb / can-utils kmod set (for BTT U2C v2.1)
+#   - Adds USB serial drivers (CH341/CP210X/FTDI/CH343)
+#   - Adds CFS Klipper extras package (creality_cfs.py)
+#   - Targets 307 MB squashfs (printer's rootfsB partition size)
+#
+# Build:
+#   make creality_hi_defconfig
+#   make -j$(nproc)
+#
+# Outputs in output/images/:
+#   - rootfs.squashfs    → write to /dev/by-name/rootfsB on printer
+#   - zImage             → already built in our kernel/ tree
+#   - DTB                → already in kernel/dts/
+#   - swupdate-package   → script in board/creality/hi/scripts/
+# =============================================================================
+
+# CPU / ABI
+BR2_arm=y
+BR2_cortex_a7=y
+BR2_ARM_FPU_VFPV4=y
+BR2_TOOLCHAIN_EXTERNAL=y
+BR2_TOOLCHAIN_EXTERNAL_GLIBC=y
+
+# Target identification
+BR2_TARGET_GENERIC_HOSTNAME="creality-hi"
+BR2_TARGET_GENERIC_ISSUE="gitStoneLabs Linux for Creality Hi (T113-S3)"
+BR2_TARGET_GENERIC_ROOT_PASSWD="root"
+
+# Global patch dir — applies our local patches over upstream package sources.
+# Currently includes:
+#   - host-systemd/0001-dbus-exporter-skip-on-error.patch
+#     (works around a systemd 250.4 buffer-overflow + glibc 2.39 fortify-source
+#     incompatibility that aborts the dbus interfaces XML export step)
+BR2_GLOBAL_PATCH_DIR="$(BR2_EXTERNAL_GITSTONELABS_PATH)/patches"
+
+# Init system — use systemd to match modern Klipper deployment.
+# systemd ships its own udev, so Buildroot auto-handles /dev population —
+# explicit BR2_ROOTFS_DEVICE_CREATION_* lines are silently ignored here.
+BR2_INIT_SYSTEMD=y
+
+# Rootfs overlay = Creality-Hi-specific files (printer.cfg defaults, klipper init scripts)
+# Paths must be absolute (or qualified with $(BR2_EXTERNAL_*_PATH)) because
+# Buildroot's default relative resolution is against its own source dir.
+BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_GITSTONELABS_PATH)/board/creality/common/rootfs-overlay $(BR2_EXTERNAL_GITSTONELABS_PATH)/board/creality/hi/rootfs-overlay"
+
+# Post-build scripts to package swupdate
+BR2_ROOTFS_POST_BUILD_SCRIPT="$(BR2_EXTERNAL_GITSTONELABS_PATH)/board/creality/hi/scripts/post-build.sh"
+BR2_ROOTFS_POST_IMAGE_SCRIPT="$(BR2_EXTERNAL_GITSTONELABS_PATH)/board/creality/hi/scripts/make-swu.sh"
+
+# Linux kernel (use our 6.6 port via a local tarball-style pointer)
+# NOTE: Buildroot 2022.02 does not have BR2_LINUX_KERNEL_CUSTOM_LOCAL_DIRECTORY.
+# Workflow for using a local kernel tree: at make time, pass
+#   LINUX_OVERRIDE_SRCDIR=$HOME/linux-6.6
+# or set BR2_PRIMARY_SITE to a file:// URL pointing at a tarball.
+# For now, point at a custom git that we can override per-build:
+BR2_LINUX_KERNEL=y
+BR2_LINUX_KERNEL_CUSTOM_GIT=y
+BR2_LINUX_KERNEL_CUSTOM_REPO_URL="https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git"
+BR2_LINUX_KERNEL_CUSTOM_REPO_VERSION="v6.6.140"
+BR2_LINUX_KERNEL_USE_CUSTOM_CONFIG=y
+BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="$(BR2_EXTERNAL_GITSTONELABS_PATH)/board/creality/common/kernel/creality_sunxi_defconfig"
+BR2_LINUX_KERNEL_DTS_SUPPORT=y
+# Use the in-tree DTS (already at arch/arm/boot/dts/allwinner/ in our linux-6.6
+# from Phase 0a). Path is relative to arch/arm/boot/dts/, sans the .dts suffix.
+# Using CUSTOM_DTS_PATH instead would copy the DTS into the wrong subdir and
+# break the `#include "sun8iw20p1.dtsi"` resolution.
+BR2_LINUX_KERNEL_INTREE_DTS_NAME="allwinner/sun8i-t113s-creality-hi"
+
+# Klipper userspace dependencies — Python + pyserial + supporting packages
+BR2_PACKAGE_PYTHON3=y
+BR2_PACKAGE_PYTHON3_PY_ONLY=y
+# Buildroot 2022.02 names the pyserial package "python-serial" (not python-pyserial)
+BR2_PACKAGE_PYTHON_SERIAL=y
+BR2_PACKAGE_PYTHON_GREENLET=y
+
+# Networking + remote access
+BR2_PACKAGE_DROPBEAR=y
+# (full dropbear is the default in BR — _SMALL is opt-in)
+BR2_PACKAGE_AVAHI=y
+BR2_PACKAGE_AVAHI_DAEMON=y
+BR2_PACKAGE_WPA_SUPPLICANT=y
+BR2_PACKAGE_WPA_SUPPLICANT_CLI=y
+BR2_PACKAGE_DHCPCD=y
+
+# CAN bus tools (for BTT U2C v2.1 USB-CAN and future EBB42 toolhead)
+BR2_PACKAGE_CAN_UTILS=y
+BR2_PACKAGE_LIBSOCKETCAN=y
+
+# WireGuard (Phase 2.5 — remote VPN access)
+BR2_PACKAGE_WIREGUARD_TOOLS=y
+
+# Dev/debug tools (Phase 2 stripped-features re-add)
+BR2_PACKAGE_STRACE=y
+BR2_PACKAGE_LTRACE=y
+BR2_PACKAGE_TCPDUMP=y
+BR2_PACKAGE_GDB=y
+BR2_PACKAGE_GDB_SERVER=y
+BR2_PACKAGE_LSOF=y
+BR2_PACKAGE_VIM=y
+BR2_PACKAGE_HTOP=y
+BR2_PACKAGE_RSYNC=y
+BR2_PACKAGE_NANO=y
+BR2_PACKAGE_LESS=y
+BR2_PACKAGE_PROCPS_NG=y
+BR2_PACKAGE_FILE=y
+BR2_PACKAGE_BINUTILS=y
+
+# Userland busybox replacement bits (avoid stock OpenWrt "no-all" stripping)
+BR2_PACKAGE_COREUTILS=y
+
+# Filesystem options — F2FS for UDISK partition, ext4 for rootfs_data
+BR2_PACKAGE_E2FSPROGS=y
+BR2_PACKAGE_E2FSPROGS_RESIZE2FS=y
+BR2_PACKAGE_F2FS_TOOLS=y
+BR2_PACKAGE_DOSFSTOOLS=y
+
+# Klipper + Moonraker + Fluidd + CFS module (Phase 2.5)
+BR2_PACKAGE_KLIPPER=y
+BR2_PACKAGE_MOONRAKER=y
+BR2_PACKAGE_CREALITY_CFS_KLIPPER=y
+BR2_PACKAGE_FLUIDD=y
+
+# AIC8800 WiFi driver + firmware (Phase 2.5)
+#
+# DEFERRED: the vendor driver source (~6.4.3.0, ~2022 vintage) was written
+# against older kernel cfg80211 APIs and hits multiple "incompatible pointer
+# type" build errors on 6.6 — notably tdls_mgmt() callback signature gained
+# an `int link_id` param for WiFi 7 multi-link operation in 6.4. Porting is
+# possible but non-trivial (~hours of API delta surgery), so we defer until
+# after the USB-Ethernet-gadget first-boot path is proven working.
+#
+# Workaround: USB Ethernet gadget (10.55.0.1 over USB-OTG) is the primary
+# comm path until AIC8800 is fixed. See docs/two_step_flash_plan.md.
+#
+# BR2_PACKAGE_AIC8800_DRIVER=y
+# BR2_PACKAGE_AIC8800_FIRMWARE=y
+
+# nginx — serves Fluidd's static files on :80 and reverse-proxies the
+# /server, /websocket, /printer endpoints to Moonraker on :7125.
+BR2_PACKAGE_NGINX=y
+BR2_PACKAGE_NGINX_HTTP=y
+BR2_PACKAGE_NGINX_HTTP_REWRITE_MODULE=y
+BR2_PACKAGE_NGINX_HTTP_PROXY_MODULE=y
+BR2_PACKAGE_NGINX_HTTP_GZIP_MODULE=y
+BR2_PACKAGE_NGINX_HTTP_GZIP_STATIC_MODULE=y
+BR2_PACKAGE_NGINX_HTTP_UPSTREAM_HASH_MODULE=y
+
+# swupdate (already installed on stock printer at /sbin/swupdate, but we want
+# it in our rootfs too)
+BR2_PACKAGE_SWUPDATE=y
+
+# Rootfs image format = squashfs (matches printer's rootfsA/B partition expectations)
+BR2_TARGET_ROOTFS_SQUASHFS=y
+BR2_TARGET_ROOTFS_SQUASHFS4_XZ=y
+# Disable ext4 image for rootfs (we only need squashfs for the A/B partitions)
+# BR2_TARGET_ROOTFS_EXT2 is not set
+
+# Host tools needed for image building
+BR2_PACKAGE_HOST_GENIMAGE=y
+BR2_PACKAGE_HOST_MTOOLS=y
+BR2_PACKAGE_HOST_PYTHON3=y
+BR2_PACKAGE_HOST_UBOOT_TOOLS=y         # mkbootimg/mkimage for swupdate packaging
+
+# Target-side u-boot-tools: ships fw_setenv/fw_printenv so the
+# gitstonelabs-bootcount-reset.service can clear the U-Boot bootcount
+# var on healthy boots (v2 watchdog auto-rollback). Without this the
+# watchdog cannot be reset from userspace and the system rolls back
+# after 3 boots even when everything is fine. See docs/swu_v2_design.md.
+BR2_PACKAGE_UBOOT_TOOLS=y
+BR2_PACKAGE_UBOOT_TOOLS_FWPRINTENV=y

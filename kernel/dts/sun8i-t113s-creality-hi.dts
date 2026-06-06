@@ -1,0 +1,445 @@
+// SPDX-License-Identifier: GPL-2.0
+/*
+ * Creality Hi 3D Printer (model F018)
+ * SoC: Allwinner T113-S3 (sun8iw20p1) - dual Cortex-A7 + HiFi4 DSP
+ *
+ * Board peripherals:
+ *   ttyS0 (UART0, PB0/PB1)  - debug console
+ *   ttyS2 (UART2, PC0/PC1)  - main MCU (Klipper host)
+ *   ttyS3 (UART3, PB6/PB7)  - nozzle MCU
+ *   ttyS4 (UART4, PB2/PB3)  - bed MCU
+ *   ttyS5 (UART5, PB4/PB5)  - CFS RS485 (multi-material filament system)
+ *   mmc2  (sdc2,  PC2-PC7)  - eMMC, A/B partitioned (swupdate)
+ *   mmc1  (sdc1,  PG0-PG5)  - WiFi SDIO
+ *   twi1  (i2c,   PG8/PG9)  - generic I2C bus
+ *   twi3  (i2c,   PE16/PE17) - touch panel controller
+ *   pwm5  (PF6), pwm6 (PF4), pwm7 (PD22) - heater / fan control
+ *
+ * Derived from the live (vendor) device tree extracted from a running unit.
+ */
+
+/dts-v1/;
+#include "sun8iw20p1.dtsi"
+
+/ {
+	model = "Creality Hi";
+	compatible = "creality,hi", "allwinner,t113_i", "arm,sun8iw20p1";
+
+	aliases {
+		serial0 = &uart0;
+		serial2 = &uart2;
+		serial3 = &uart3;
+		serial4 = &uart4;
+		serial5 = &uart5;
+		mmc1 = &sdc1;
+		mmc2 = &sdc2;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	memory@40000000 {
+		device_type = "memory";
+		/* 128 MiB visible to Linux; remainder reserved for OPTEE/DSP */
+		reg = <0x0 0x40000000 0x0 0x08000000>;
+	};
+
+	leds {
+		compatible = "gpio-leds";
+		status = "okay";
+
+		sys_led {
+			label = "sys-led";
+			gpios = <&pio PG 6 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "timer";
+		};
+	};
+
+	/*
+	 * CAN controllers - placeholder structure matching the live tree.
+	 * The vendor DT did not provide reg/interrupts/clocks; enabling these
+	 * will require filling in proper MMIO/IRQ/CCU references against the
+	 * T113 datasheet.
+	 */
+	can0: can@0 {
+		compatible = "allwinner,sun8i-can";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		device_type = "can0";
+		id = <0>;
+		status = "disabled";
+	};
+
+	can1: can@1 {
+		compatible = "allwinner,sun8i-can";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		device_type = "can1";
+		id = <1>;
+		status = "disabled";
+	};
+};
+
+&pio {
+	/* ---- UART pin groups ---- */
+	uart0_pins_a: uart0@0 {
+		pins = "PB0", "PB1";
+		function = "uart0";
+		drive-strength = <10>;
+		bias-pull-up;
+	};
+	uart0_pins_b: uart0@1 {
+		pins = "PB0", "PB1";
+		function = "gpio_in";
+	};
+
+	uart2_pins_a: uart2@0 {
+		pins = "PC0", "PC1";
+		function = "uart2";
+		drive-strength = <10>;
+		bias-pull-up;
+	};
+	uart2_pins_b: uart2@1 {
+		pins = "PC0", "PC1";
+		function = "gpio_in";
+	};
+
+	uart3_pins_a: uart3@0 {
+		pins = "PB6", "PB7";
+		function = "uart3";
+		drive-strength = <10>;
+		bias-pull-up;
+	};
+	uart3_pins_b: uart3@1 {
+		pins = "PB6", "PB7";
+		function = "gpio_in";
+	};
+
+	uart4_pins_a: uart4@0 {
+		pins = "PB2", "PB3";
+		function = "uart4";
+		drive-strength = <10>;
+		bias-pull-up;
+	};
+	uart4_pins_b: uart4@1 {
+		pins = "PB2", "PB3";
+		function = "gpio_in";
+	};
+
+	uart5_pins_a: uart5@0 {
+		pins = "PB4", "PB5";
+		function = "uart5";
+		drive-strength = <10>;
+		bias-pull-up;
+	};
+	uart5_pins_b: uart5@1 {
+		pins = "PB4", "PB5";
+		function = "gpio_in";
+	};
+
+	/* ---- eMMC (sdc2) pin group ---- */
+	sdc2_pins_a: sdc2@0 {
+		pins = "PC2", "PC3", "PC4", "PC5", "PC6", "PC7";
+		function = "sdc2";
+		drive-strength = <30>;
+		bias-pull-up;
+	};
+	sdc2_pins_b: sdc2@1 {
+		pins = "PC2", "PC3", "PC4", "PC5", "PC6", "PC7";
+		function = "gpio_in";
+	};
+
+	/* ---- WiFi SDIO (sdc1) pin group ---- */
+	sdc1_pins_a: sdc1@0 {
+		pins = "PG0", "PG1", "PG2", "PG3", "PG4", "PG5";
+		function = "sdc1";
+		drive-strength = <30>;
+		bias-pull-up;
+	};
+	sdc1_pins_b: sdc1@1 {
+		pins = "PG0", "PG1", "PG2", "PG3", "PG4", "PG5";
+		function = "sdc1";
+	};
+
+	/*
+	 * sdc0 pin groups - referenced by sdc0 in sun8iw20p1.dtsi but the
+	 * SD card slot is physically disabled on the Hi board.  These exist
+	 * only so the vendor dtsi resolves; sdc0 itself is overridden to
+	 * status="disabled" below.
+	 */
+	sdc0_pins_a: sdc0@0 {
+		pins = "PF0", "PF1", "PF2", "PF3", "PF4", "PF5";
+		function = "sdc0";
+		drive-strength = <30>;
+		bias-pull-up;
+	};
+	sdc0_pins_b: sdc0@1 {
+		pins = "PF0", "PF1", "PF2", "PF3", "PF4", "PF5";
+		function = "sdc0";
+		drive-strength = <30>;
+		bias-pull-up;
+	};
+	sdc0_pins_c: sdc0@2 {
+		pins = "PF0", "PF1", "PF2", "PF3", "PF4", "PF5";
+		function = "gpio_in";
+	};
+	sdc0_pins_d: sdc0@3 {
+		pins = "PF2", "PF4";
+		function = "uart0";
+		drive-strength = <10>;
+		bias-pull-up;
+	};
+	sdc0_pins_e: sdc0@4 {
+		pins = "PF0", "PF1", "PF3", "PF5";
+		function = "jtag";
+		drive-strength = <10>;
+		bias-pull-up;
+	};
+
+	/* ---- I2C pin groups ---- */
+	twi1_pins_a: twi1@0 {
+		pins = "PG8", "PG9";
+		function = "twi1";
+		drive-strength = <10>;
+	};
+	twi1_pins_b: twi1@1 {
+		pins = "PG8", "PG9";
+		function = "gpio_in";
+	};
+
+	twi3_pins_a: twi3@0 {
+		pins = "PE16", "PE17";
+		function = "twi3";
+		drive-strength = <10>;
+	};
+	twi3_pins_b: twi3@1 {
+		pins = "PE16", "PE17";
+		function = "gpio_in";
+	};
+
+	/* ---- PWM pin groups (live unit uses pwm5/6/7) ---- */
+	pwm5_pins_a: pwm5@0 {
+		pins = "PF6";
+		function = "pwm5";
+		drive-strength = <10>;
+		bias-pull-up;
+	};
+	pwm5_pins_b: pwm5@1 {
+		pins = "PF6";
+		function = "gpio_in";
+		bias-pull-down;
+	};
+
+	pwm6_pins_a: pwm6@0 {
+		pins = "PF4";
+		function = "pwm6";
+		drive-strength = <10>;
+		bias-pull-up;
+	};
+	pwm6_pins_b: pwm6@1 {
+		pins = "PF4";
+		function = "gpio_in";
+		bias-pull-down;
+	};
+
+	pwm7_pins_a: pwm7@0 {
+		pins = "PD22";
+		function = "pwm7";
+		drive-strength = <10>;
+		bias-pull-up;
+	};
+	pwm7_pins_b: pwm7@1 {
+		pins = "PD22";
+		function = "gpio_in";
+	};
+};
+
+/* ============================================================== */
+/* UARTs                                                          */
+/* ============================================================== */
+
+&uart0 {
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&uart0_pins_a>;
+	pinctrl-1 = <&uart0_pins_b>;
+	status = "okay";
+};
+
+/* UART1 not wired on this board (PG6..9 area is unused). */
+&uart1 {
+	status = "disabled";
+};
+
+&uart2 {
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&uart2_pins_a>;
+	pinctrl-1 = <&uart2_pins_b>;
+	status = "okay";
+};
+
+&uart3 {
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&uart3_pins_a>;
+	pinctrl-1 = <&uart3_pins_b>;
+	status = "okay";
+};
+
+&uart4 {
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&uart4_pins_a>;
+	pinctrl-1 = <&uart4_pins_b>;
+	status = "okay";
+};
+
+&uart5 {
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&uart5_pins_a>;
+	pinctrl-1 = <&uart5_pins_b>;
+	status = "okay";
+};
+
+/* ============================================================== */
+/* eMMC (boot/data device, A/B partitioned)                       */
+/* ============================================================== */
+
+&sdc2 {
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&sdc2_pins_a>;
+	pinctrl-1 = <&sdc2_pins_b>;
+	bus-width = <4>;
+	non-removable;
+	mmc-cache-ctrl;
+	cap-mmc-highspeed;
+	cap-cmd23;
+	cap-erase;
+	mmc-high-capacity-erase-size;
+	no-sd;
+	no-sdio;
+	mmc-ddr-1_8v;
+	mmc-hs200-1_8v;
+	ctl-spec-caps = <0x308>;
+	mmc-bootpart-noacc;
+	max-frequency = <150000000>;
+	req-page-count = <2>;
+
+	/* Delay/timing tuning values copied verbatim from the live tree */
+	sdc_tm4_sm0_freq0 = <0xffffffff>;
+	sdc_tm4_sm0_freq1 = <0xffffffff>;
+	sdc_tm4_sm1_freq0 = <0xff1dffff>;
+	sdc_tm4_sm1_freq1 = <0xffffffff>;
+	sdc_tm4_sm2_freq0 = <0xff1717ff>;
+	sdc_tm4_sm2_freq1 = <0xffffffff>;
+	sdc_tm4_sm3_freq0 = <0x0e18ffff>;
+	sdc_tm4_sm3_freq1 = <0xffffff0b>;
+	sdc_tm4_sm4_freq0 = <0xffffffff>;
+	sdc_tm4_sm4_freq1 = <0xffffffff>;
+	sdc_tm4_sm4_freq0_cmd = <0xffffffff>;
+	sdc_tm4_sm4_freq1_cmd = <0xffffffff>;
+
+	sunxi-power-save-mode;
+	sunxi-dis-signal-vol-sw;
+
+	status = "okay";
+};
+
+/* SD card slot is not populated on this board */
+&sdc0 {
+	status = "disabled";
+};
+
+/* ============================================================== */
+/* WiFi SDIO (sdc1) - PG0..PG5                                    */
+/* ============================================================== */
+
+&sdc1 {
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&sdc1_pins_a>;
+	pinctrl-1 = <&sdc1_pins_b>;
+	bus-width = <4>;
+	cap-sd-highspeed;
+	cap-sdio-irq;
+	keep-power-in-suspend;
+	no-mmc;
+	no-sd;
+	non-removable;
+	sd-uhs-sdr12;
+	sd-uhs-sdr25;
+	sd-uhs-sdr50;
+	sd-uhs-ddr50;
+	sd-uhs-sdr104;
+	ignore-pm-notify;
+	ctl-spec-caps = <0x08>;
+	sunxi-dly-52M-ddr4 = <1 0 0 0 2>;
+	sunxi-dly-104M = <1 0 0 0 1>;
+	sunxi-dly-208M = <1 0 0 0 1>;
+	status = "okay";
+};
+
+/* ============================================================== */
+/* I2C                                                            */
+/* ============================================================== */
+
+&twi1 {
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&twi1_pins_a>;
+	pinctrl-1 = <&twi1_pins_b>;
+	clock-frequency = <400000>;
+	status = "okay";
+};
+
+&twi3 {
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&twi3_pins_a>;
+	pinctrl-1 = <&twi3_pins_b>;
+	clock-frequency = <100000>;
+	status = "okay";
+
+	/* Touch panel - the live tree carries two alternate chip nodes;
+	 * one of them is actually fitted depending on board variant.
+	 */
+	touch_goodix: ctp@14 {
+		compatible = "goodix,gt911";
+		reg = <0x14>;
+		interrupt-parent = <&pio>;
+		interrupts = <4 15 IRQ_TYPE_EDGE_FALLING>; /* PE15 */
+		reset-gpios = <&pio PE 14 GPIO_ACTIVE_LOW>;
+		irq-gpios = <&pio PE 15 GPIO_ACTIVE_HIGH>;
+		touchscreen-size-x = <480>;
+		touchscreen-size-y = <800>;
+		status = "okay";
+	};
+
+	touch_tlsc6x: ctp@2e {
+		compatible = "tlsc6x,tlsc6x_ts";
+		reg = <0x2e>;
+		irq-gpios = <&pio PE 15 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&pio PE 14 GPIO_ACTIVE_LOW>;
+		status = "disabled";
+	};
+};
+
+/* ============================================================== */
+/* PWMs - heater and fan control                                  */
+/* ============================================================== */
+
+&pwm5 {
+	pinctrl-names = "active", "sleep";
+	pinctrl-0 = <&pwm5_pins_a>;
+	pinctrl-1 = <&pwm5_pins_b>;
+	status = "okay";
+};
+
+&pwm6 {
+	pinctrl-names = "active", "sleep";
+	pinctrl-0 = <&pwm6_pins_a>;
+	pinctrl-1 = <&pwm6_pins_b>;
+	status = "okay";
+};
+
+&pwm7 {
+	pinctrl-names = "active", "sleep";
+	pinctrl-0 = <&pwm7_pins_a>;
+	pinctrl-1 = <&pwm7_pins_b>;
+	status = "okay";
+};
