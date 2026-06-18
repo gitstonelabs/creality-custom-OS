@@ -8,6 +8,9 @@ Document versions are tracked with a header like `Version: X.Y — YYYY-MM-DD` a
 
 ## [Unreleased] — work in progress
 
+### Ground-truth reference doc added: stock Hi target contract (2026-06-17)
+Verified against the official V1.1.0.50 release images (OTA plus IMAGEWTY uart0). New `docs/ground_truth.md` records the authoritative facts a custom OS must match: the eMMC partition table, the stock kernel (Linux 5.4.61), the Android bootimg v2 boot contract (load `0x40008000`, empty cmdline, v2 dtb section), the DTB compatible (`allwinner,t113_i` / `sun8iw20p1`), the exact DDR3 DRAM training parameters, the four out-of-tree `.ko` the 6.6 port must reproduce, and the no-rollback A/B install rule. No Creality blob is stored, only the extracted contract. Open item flagged: the live on-eMMC DTB placement (appended versus v2-section) is not yet dumped.
+
 ### ✅ Privacy lockdown: stock Hi egress restricted to LAN-only (2026-05-31) — Creality cloud cut off
 Blocked all off-LAN/Creality communication on the modded-stock OS.
 - **Caught phoning home:** an MQTT session `<printer-ip> -> 47.253.214.226:1883` (Alibaba Cloud = Creality Cloud) + `ntpd` to `ntp5.aliyun.com`.
