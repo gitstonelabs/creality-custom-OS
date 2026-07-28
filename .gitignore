@@ -16,3 +16,6 @@ rootfs.tar
 
 # Buildroot output tree
 build-output/
+
+# AIC8800 vendor firmware blobs, excluded on purpose, see NOTICES.md.
+rootfs/package/aic8800-firmware/lib/firmware/

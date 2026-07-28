@@ -25,6 +25,8 @@ Buildroot-based custom rootfs for Creality Hi (and future K1/K2). Replaces stock
 
 The actual Buildroot tree lives at `~/buildroot-yuzuki/buildroot/` on WSL (BR2_VERSION 2022.02.2). This `rootfs/` folder in the workspace is the **external tree**, the Hi-specific overlay on top of Yuzuki's upstream Buildroot. That tree, `linux-6.6`, and the T113 vendor BSP are per-machine and not stored in this repo, so the build is not yet reproducible from this repo alone (see KNOWN-GAPS.md).
 
+Because this external tree also exists as a private build tree, the two can drift. `tools/check-rootfs-sync.sh` is the gate against that: it diffs the two, allows only the vendor firmware blobs to be build-tree-only, rejects placeholder `.hash` files, and greps for leaked paths, MACs, SSIDs and PSKs. Run it before publishing.
+
 ### Defconfig drops we hit and fixed (2026-05-24)
 
 | Symbol attempted | Outcome | Fix |
@@ -33,6 +35,16 @@ The actual Buildroot tree lives at `~/buildroot-yuzuki/buildroot/` on WSL (BR2_V
 | `BR2_PACKAGE_PYTHON_PYSERIAL` | Renamed | `BR2_PACKAGE_PYTHON_SERIAL` |
 | `BR2_PACKAGE_DROPBEAR_SMALL=n` | Invalid defconfig syntax | Removed (default is already full dropbear) |
 | `BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_MDEV` | Conflicts with `BR2_INIT_SYSTEMD` | Removed (systemd ships its own udev) |
+
+### Python interpreter pinned to 3.9.25 (2026-06-09)
+
+Buildroot 2022.02.2 ships a single-version `python3` package hardcoded to 3.10.4 in `package/python3/python3.mk`; there is **no Kconfig knob** to choose the version, so a defconfig line cannot pin it. Creality's withheld klippy modules are `*.cpython-39.so` and only import on a CPython 3.9 interpreter, so the transition rootfs must ship 3.9. Pin applied to the upstream recipe by `scripts/pin-python39.sh` (idempotent, backs up `python3.mk`/`python3.hash`, computes nothing at build time). Run it once before building: `./scripts/pin-python39.sh`. ABI is otherwise satisfied: `BR2_TOOLCHAIN_EXTERNAL_GLIBC=y` (glibc, not musl) and the stock `.so` need only `GLIBC_2.4`. Revert: restore the `.bak_pin39_*` files or `git checkout package/python3/`. Patch-series compatibility (the python3 `*.patch` set was refreshed for 3.10) is the one gate that only the deliberate rebuild can confirm.
+
+Skipping this step does not break the build. It produces a rootfs with Python 3.10 that cannot load any stock `.cpython-39.so`, which defeats the point of the transition image.
+
+### Package hash files: intentionally absent
+
+There are no `.hash` files under `package/`. That is deliberate, not an oversight. Buildroot treats a `.hash` file that exists but carries no hash line for the downloaded file as a **hard error** (`ERROR: No hash found for <file>`, `check-hash` exit 3), while a missing `.hash` file is a benign warning. Placeholder hash files therefore break `make <pkg>-source` outright. If you add real hashes later, add complete ones or none at all.
 
 ---
 

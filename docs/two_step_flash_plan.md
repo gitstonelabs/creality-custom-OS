@@ -154,6 +154,24 @@ If Klipper says "Printer is ready" and Fluidd loads, **Phase 3 complete.** You c
 
 ---
 
+## Step 4: change the root password
+
+Do this before the printer goes on your network for real. The image ships a weak default root
+password (`root`), set by `BR2_TARGET_GENERIC_ROOT_PASSWD` in `rootfs/configs/creality_hi_defconfig`.
+Nothing forces a change on first boot, so it stays `root` until you change it. A printer on your
+LAN with SSH open and a guessable root password is worth exactly one bored guest.
+
+```bash
+ssh root@creality-hi.local
+passwd                 # change the root password
+```
+
+This image uses BusyBox, so it is `adduser`/`deluser`/`passwd`, not `useradd`/`usermod`, and
+there is no `sudo`. Adding a normal user, moving to SSH key login, and disabling remote root
+login over SSH are all covered in [../SECURITY.md](../SECURITY.md).
+
+---
+
 ## Recovery scenarios
 
 | Symptom | Recovery |

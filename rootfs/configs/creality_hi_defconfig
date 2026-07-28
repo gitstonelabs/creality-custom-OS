@@ -9,7 +9,13 @@
 #   - Board DTS = sun8i-t113s-creality-hi.dts (our 445-line port)
 #   - Hostname / issue strings = Creality Hi
 #   - Adds Klipper / Moonraker / Fluidd packages
-#   - Adds Python 3.9 + pyserial (for prtouch_v3.py + creality_cfs.py)
+#   - Adds Python 3 + pyserial (for prtouch_v3.py + creality_cfs.py)
+#     NOTE: the interpreter is PINNED to CPython 3.9.25 — required so
+#     Creality's withheld *.cpython-39.so import during the transition.
+#     Buildroot 2022.02 has NO Kconfig version knob for python3 (single-
+#     version package, hardcoded 3.10.4 in package/python3/python3.mk), so
+#     the pin is applied to the upstream recipe by scripts/pin-python39.sh.
+#     Run that once before building:  ./scripts/pin-python39.sh
 #   - Adds gs_usb / can-utils kmod set (for BTT U2C v2.1)
 #   - Adds USB serial drivers (CH341/CP210X/FTDI/CH343)
 #   - Adds CFS Klipper extras package (creality_cfs.py)
